@@ -50,17 +50,6 @@ Earn productivity ranks based on:
 - Streaks
 - Consistency
 
-### 🌧️ Ambient Modes
-Switch between immersive environments:
-
-- 🌌 Space
-- 🌧️ Rain
-- 📚 Library
-- 🌲 Forest
-- ☕ Café
-
-Optional ambient sounds available.
-
 ### 💡 Smart Insights
 Receive personalized insights such as:
 
@@ -68,25 +57,6 @@ Receive personalized insights such as:
 - Weekly trends
 - Monthly summaries
 - Focus consistency
-
-### 🏆 Achievement System
-Unlock achievements like:
-
-- First Session
-- 5 Sessions
-- 25 Sessions
-- 100 Sessions
-- 7-Day Streak
-- Early Bird
-- Night Owl
-
-### 🎨 Premium UI
-- Dark Mode
-- Glassmorphism
-- Responsive Design
-- Smooth Animations
-- Micro Interactions
-- Modern Typography
 
 ---
 

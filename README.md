@@ -157,6 +157,16 @@ npm run dev
 ```
 
 ---
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+
+```sh
+git clone <this-repository-url>
+cd <repository-name>
+npm i
+npm run dev
+```
 
 # 📸 Screenshots
 
@@ -220,31 +230,3 @@ Focusly transforms every focus session into measurable progress through insightf
 Made with ❤️ for focused minds.
 
 
-
-
-
-
-
-
-
-
-
-
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS

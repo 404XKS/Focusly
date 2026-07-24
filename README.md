@@ -1,4 +1,4 @@
-# 🍅 Focusly
+# Focusly
 
 > **Turn minutes into momentum.**
 
@@ -160,7 +160,8 @@ npm run dev
 
 # 📸 Screenshots
 
-> Add screenshots here after completing the project.
+<img width="847" height="402" alt="image" src="https://github.com/user-attachments/assets/99c8d731-1dd6-4e34-b3fe-587ee16a21b4" />
+
 
 - Landing Page
 - Timer

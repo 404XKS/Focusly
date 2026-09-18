@@ -17,9 +17,12 @@ export function ShortcutsModal() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select") return;
-      if (e.key === " ") { e.preventDefault(); running ? pause() : start(); }
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select" || el?.isContentEditable) return;
+      // Never hijack browser/OS shortcuts (Cmd+R, Ctrl+S, …)
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === " ") { e.preventDefault(); if (running) pause(); else start(); }
       else if (e.key.toLowerCase() === "r") reset();
       else if (e.key.toLowerCase() === "s") skip();
       else if (e.key.toLowerCase() === "f") setFocusMode(!focusMode);

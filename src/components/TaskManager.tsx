@@ -38,7 +38,10 @@ export function TaskManager() {
         />
         <input
           type="number" min={1} max={20} value={estimated}
-          onChange={(e) => setEstimated(parseInt(e.target.value || "1"))}
+          onChange={(e) => {
+            const n = parseInt(e.target.value, 10);
+            setEstimated(Number.isFinite(n) ? Math.min(20, Math.max(1, n)) : 1);
+          }}
           className="w-20 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-center"
           aria-label="Estimated pomodoros"
         />

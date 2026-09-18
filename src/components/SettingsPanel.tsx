@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useFocusly } from "@/contexts/FocuslyContext";
 import type { Settings as S } from "@/utils/types";
 
@@ -25,9 +26,22 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (b: 
 }
 
 function Num({ v, on, min = 1, max = 90 }: { v: number; on: (n: number) => void; min?: number; max?: number }) {
+  const [draft, setDraft] = useState<string>(String(v));
+  useEffect(() => { setDraft(String(v)); }, [v]);
+  const commit = (raw: string) => {
+    const n = parseInt(raw, 10);
+    const safe = Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : v;
+    setDraft(String(safe));
+    on(safe);
+  };
   return (
-    <input type="number" min={min} max={max} value={v}
-      onChange={(e) => on(Math.min(max, Math.max(min, parseInt(e.target.value || "1"))))}
+    <input type="number" inputMode="numeric" min={min} max={max} value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const n = parseInt(e.target.value, 10);
+        if (Number.isFinite(n) && n >= min && n <= max) on(n);
+      }}
+      onBlur={(e) => commit(e.target.value)}
       className="w-20 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-center" />
   );
 }
@@ -48,13 +62,13 @@ export function SettingsPanel() {
       <p className="text-xs text-white/40 mb-4">Preferences save automatically to this browser.</p>
 
       <Row label="Focus duration" hint="Minutes per focus session">
-        <Num v={settings.focus} on={(n) => updateSettings({ focus: n })} />
+        <Num v={settings.focus} on={(n) => updateSettings({ focus: n })} max={180} />
       </Row>
       <Row label="Short break" hint="Minutes for short breaks">
-        <Num v={settings.short} on={(n) => updateSettings({ short: n })} />
+        <Num v={settings.short} on={(n) => updateSettings({ short: n })} max={90} />
       </Row>
       <Row label="Long break" hint="Minutes after every 4th focus session">
-        <Num v={settings.long} on={(n) => updateSettings({ long: n })} />
+        <Num v={settings.long} on={(n) => updateSettings({ long: n })} max={120} />
       </Row>
       <Row label="Auto-start focus sessions" hint="Continue after a break">
         <Toggle label="Auto-start focus" checked={settings.autoStart} onChange={(b) => updateSettings({ autoStart: b })} />

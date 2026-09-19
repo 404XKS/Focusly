@@ -11,7 +11,7 @@ const priorityStyle: Record<Task["priority"], string> = {
 };
 
 export function TaskManager() {
-  const { tasks, addTask, toggleTask, removeTask, activeTaskId, setActiveTaskId } = useFocusly();
+  const { tasks, addTask, toggleTask, removeTask, activeTaskId, setActiveTaskId, startTaskFocus, running, mode } = useFocusly();
   const [title, setTitle] = useState("");
   const [estimated, setEstimated] = useState(2);
   const [priority, setPriority] = useState<Task["priority"]>("medium");
@@ -76,9 +76,10 @@ export function TaskManager() {
                     <span>{t.completed}/{t.estimated} pomodoros</span>
                   </div>
                 </div>
-                <button onClick={() => setActiveTaskId(active ? null : t.id)}
+                <button onClick={() => { if (active) { setActiveTaskId(null); } else if (running && mode === "focus") { setActiveTaskId(t.id); } else { startTaskFocus(t.id); } }}
                   className={`rounded-lg p-2 transition ${active ? "bg-brand/30 text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}
-                  aria-label="Set active task">
+                  aria-label={active ? "Unset active task" : "Start focus on this task"}
+                  title={active ? "Unset active task" : "Start focus session"}>
                   <Play className="h-4 w-4" />
                 </button>
                 <button onClick={() => removeTask(t.id)}

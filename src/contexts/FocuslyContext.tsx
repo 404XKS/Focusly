@@ -337,7 +337,7 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     } finally {
       completingRef.current = false;
     }
-  }, [mode, cycle, settings, activeTaskId, clearTimer, recordSession, playBeep, notify, scheduleAutoStart]);
+  }, [mode, cycle, settings, activeTaskId, activeTask, clearTimer, recordSession, playBeep, notify, scheduleAutoStart]);
 
   // Always call the freshest advance() from the interval, without restarting it.
   const advanceRef = useRef(advance);
@@ -377,6 +377,18 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     setRunning(false);
     setModeState(m);
   }, []);
+
+  /** Select a task, switch to focus mode and start the timer in one action. */
+  const startTaskFocus = useCallback((id: string) => {
+    setTasks((prev) => {
+      if (!prev.some((t) => t.id === id && !t.done)) return prev;
+      setActiveTaskId(id);
+      if (autoStartRef.current !== null) { window.clearTimeout(autoStartRef.current); autoStartRef.current = null; }
+      setModeState("focus");
+      startInternal(clampInt(settings.focus, 1, 180, 25) * 60);
+      return prev;
+    });
+  }, [settings.focus, startInternal]);
 
   // Single ticker, deadline-based so background throttling cannot cause drift.
   useEffect(() => {
@@ -473,7 +485,7 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     settings, updateSettings,
     stats,
     tasks, addTask, toggleTask, removeTask,
-    activeTaskId, setActiveTaskId, activeTask,
+    activeTaskId, setActiveTaskId, startTaskFocus, activeTask,
     focusMode, setFocusMode,
     lastQuote, clearQuote: () => setLastQuote(null),
     cycle,

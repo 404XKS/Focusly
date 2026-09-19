@@ -290,6 +290,8 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     }, 250);
   }, [startInternal]);
 
+  const activeTask = tasks.find((t) => t.id === activeTaskId) || null;
+
   /**
    * Advance to the next interval.
    * `completed` is true only when the timer genuinely reached 00:00 —
@@ -476,8 +478,6 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback((s: Partial<Settings>) => {
     setSettings((p) => sanitizeSettings({ ...p, ...s }));
   }, []);
-
-  const activeTask = tasks.find((t) => t.id === activeTaskId) || null;
 
   const value: Ctx = {
     mode, setMode, running, remaining, duration,

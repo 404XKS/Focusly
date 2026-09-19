@@ -104,6 +104,7 @@ function AppPage() {
                       <Timer />
                     </div>
                     <div className="space-y-4">
+                      <TodayFocus />
                       <StatsCards />
                       <Insights />
                     </div>

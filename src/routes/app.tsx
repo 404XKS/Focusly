@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, BarChart3, Settings as SettingsIcon, Trophy, Sparkles, ListTodo, Timer as TimerIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, Settings as SettingsIcon, Trophy, Sparkles, ListTodo, Timer as TimerIcon, Target, Clock, CheckCircle2 } from "lucide-react";
+import { todayKey } from "@/utils/helpers";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { Timer } from "@/components/Timer";
 import { TaskManager } from "@/components/TaskManager";

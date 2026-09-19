@@ -47,6 +47,7 @@ type Ctx = {
   removeTask: (id: string) => void;
   activeTaskId: string | null;
   setActiveTaskId: (id: string | null) => void;
+  startTaskFocus: (id: string) => void;
   activeTask: Task | null;
   focusMode: boolean;
   setFocusMode: (b: boolean) => void;
@@ -306,11 +307,15 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
         if (completed) {
           recordSession(settings.focus);
           if (activeTaskId) {
-            setTasks((prev) => prev.map((t) => (t.id === activeTaskId ? { ...t, completed: t.completed + 1 } : t)));
+            setTasks((prev) => prev.map((t) => {
+              if (t.id !== activeTaskId || t.done) return t;
+              const completedCount = Math.min(t.estimated, t.completed + 1);
+              return { ...t, completed: completedCount, done: completedCount >= t.estimated };
+            }));
           }
           setLastQuote(randomQuote());
           playBeep();
-          notify("Focus session complete", "Take a well-deserved break.");
+          notify("Focus session complete", activeTask ? `Finished: ${activeTask.title}` : "Take a well-deserved break.");
         }
         const nextCycle = completed ? cycle + 1 : cycle;
         setCycle(nextCycle);

@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, BarChart3, Settings as SettingsIcon, Trophy, Sparkles, ListTodo, Timer as TimerIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, Settings as SettingsIcon, Trophy, Sparkles, ListTodo, Timer as TimerIcon, Target, Clock, CheckCircle2 } from "lucide-react";
+import { todayKey } from "@/utils/helpers";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { Timer } from "@/components/Timer";
 import { TaskManager } from "@/components/TaskManager";
@@ -103,6 +104,7 @@ function AppPage() {
                       <Timer />
                     </div>
                     <div className="space-y-4">
+                      <TodayFocus />
                       <StatsCards />
                       <Insights />
                     </div>
@@ -140,6 +142,35 @@ function AppPage() {
           </motion.main>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function TodayFocus() {
+  const { stats, activeTask } = useFocusly();
+  const today = todayKey();
+  const todaySessions = stats.sessions.filter((s) => s.date === today);
+  const todayMinutes = todaySessions.reduce((a, b) => a + b.minutes, 0);
+
+  const rows = [
+    { icon: Clock, label: "Focus minutes", value: `${todayMinutes}m` },
+    { icon: CheckCircle2, label: "Sessions completed", value: String(todaySessions.length) },
+    { icon: Target, label: "Active task", value: activeTask ? activeTask.title : "None selected" },
+  ];
+
+  return (
+    <div className="glass rounded-2xl p-4">
+      <div className="text-xs text-white/50 font-display">Today's Focus</div>
+      <div className="mt-3 space-y-2.5">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-white/50 min-w-0">
+              <r.icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{r.label}</span>
+            </div>
+            <div className="text-sm text-white/90 truncate text-right">{r.value}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

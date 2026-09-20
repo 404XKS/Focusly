@@ -23,10 +23,15 @@ export function FocusGalaxy() {
   // draw simple constellation lines between consecutive stars
   return (
     <div className="glass rounded-3xl p-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-lg font-semibold">Focus Galaxy</h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="font-display text-lg font-semibold">Your Focus Galaxy</h3>
         <span className="text-xs text-white/40">{stars.length} stars</span>
       </div>
+      <p className="text-xs text-white/50 mb-3">
+        {stars.length === 0
+          ? "No focus sessions yet"
+          : `${stats.totalSessions} focus session${stats.totalSessions === 1 ? "" : "s"} · ${stats.totalFocusMinutes} min of focus`}
+      </p>
       <div className="relative overflow-hidden rounded-2xl h-[300px]"
         style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.25), transparent 60%), #06060c" }}>
         <svg className="absolute inset-0 h-full w-full">

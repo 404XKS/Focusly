@@ -46,7 +46,7 @@ function AppPage() {
 
   return (
     <div className="relative min-h-screen">
-      <div className="fixed inset-0 -z-10">
+      <div className="fixed inset-0 pointer-events-none">
         <AmbientBackground mode={settings.ambient} />
         <AnimatePresence>
           {focusMode && (

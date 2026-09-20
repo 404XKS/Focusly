@@ -169,22 +169,24 @@ function TodayFocus() {
         {rows.map((r) => {
           const task = activeTask && r.taskId === activeTask.id ? activeTask : undefined;
           return (
-            <div key={r.label} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-white/50 min-w-0">
-                <r.icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{r.label}</span>
+            <Fragment key={r.label}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-white/50 min-w-0">
+                  <r.icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{r.label}</span>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  {task && (
+                    <span className="shrink-0 text-xs text-white/50">{task.completed}/{task.estimated}</span>
+                  )}
+                  <div className="text-sm text-white/90 truncate text-right">{r.value}</div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 min-w-0">
-                {task && (
-                  <span className="shrink-0 text-xs text-white/50">{task.completed}/{task.estimated}</span>
-                )}
-                <div className="text-sm text-white/90 truncate text-right">{r.value}</div>
-              </div>
-            </div>
-            {task && (
-              <div key={`${r.label}-bar`} className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
-              </div>
-            )}
+              {task && (
+                <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+                </div>
+              )}
+            </Fragment>
           );
         })}
       </div>

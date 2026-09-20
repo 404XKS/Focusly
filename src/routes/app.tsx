@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, BarChart3, Settings as SettingsIcon, Trophy, Sparkles, ListTodo, Timer as TimerIcon, Target, Clock, CheckCircle2 } from "lucide-react";
 import { todayKey } from "@/utils/helpers";
@@ -152,24 +152,43 @@ function TodayFocus() {
   const todaySessions = stats.sessions.filter((s) => s.date === today);
   const todayMinutes = todaySessions.reduce((a, b) => a + b.minutes, 0);
 
+  const progress = activeTask && activeTask.estimated > 0
+    ? Math.min(1, activeTask.completed / activeTask.estimated)
+    : 0;
+
   const rows = [
     { icon: Clock, label: "Focus minutes", value: `${todayMinutes}m` },
     { icon: CheckCircle2, label: "Sessions completed", value: String(todaySessions.length) },
-    { icon: Target, label: "Active task", value: activeTask ? activeTask.title : "None selected" },
+    { icon: Target, label: "Active task", value: activeTask ? activeTask.title : "None selected", taskId: activeTask?.id },
   ];
 
   return (
     <div className="glass rounded-2xl p-4">
       <div className="text-xs text-white/50 font-display">Today's Focus</div>
       <div className="mt-3 space-y-2.5">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-white/50 min-w-0">
-              <r.icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{r.label}</span>
-            </div>
-            <div className="text-sm text-white/90 truncate text-right">{r.value}</div>
-          </div>
-        ))}
+        {rows.map((r) => {
+          const task = activeTask && r.taskId === activeTask.id ? activeTask : undefined;
+          return (
+            <Fragment key={r.label}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-white/50 min-w-0">
+                  <r.icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{r.label}</span>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  {task && (
+                    <span className="shrink-0 text-xs text-white/50">{task.completed}/{task.estimated}</span>
+                  )}
+                  <div className="text-sm text-white/90 truncate text-right">{r.value}</div>
+                </div>
+              </div>
+              {task && (
+                <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
       </div>
     </div>
   );

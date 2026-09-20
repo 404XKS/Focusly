@@ -31,6 +31,7 @@ export function FocusGalaxy() {
         {stars.length === 0
           ? "No focus sessions yet"
           : `${stats.totalSessions} focus session${stats.totalSessions === 1 ? "" : "s"} · ${stats.totalFocusMinutes} min of focus`}
+        <span className="ml-2 text-white/35">· <span className="text-white/70">★</span> Focus Session</span>
       </p>
       <div className="relative overflow-hidden rounded-2xl h-[300px]"
         style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.25), transparent 60%), #06060c" }}>

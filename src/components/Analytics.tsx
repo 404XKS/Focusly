@@ -45,8 +45,23 @@ export function Analytics() {
     }, [stats.sessions]);
 
   return (
-    <Suspense fallback={<div className="glass rounded-3xl p-12 text-center text-white/40">Loading charts…</div>}>
-      <Charts daily={data.daily} weekly={data.weekly} monthly={data.monthly} />
-    </Suspense>
+    <div className="space-y-4">
+      <div className="glass flex flex-wrap items-center justify-between gap-4 rounded-3xl px-5 py-4">
+        <h4 className="font-display text-base font-semibold">This Week</h4>
+        <div className="flex items-center gap-6 text-sm">
+          <div>
+            <span className="text-xl font-semibold text-gradient">{data.weekMinutes}</span>
+            <span className="ml-1.5 text-xs text-white/40">focus minutes</span>
+          </div>
+          <div>
+            <span className="text-xl font-semibold text-gradient">{data.weekSessions}</span>
+            <span className="ml-1.5 text-xs text-white/40">sessions completed</span>
+          </div>
+        </div>
+      </div>
+      <Suspense fallback={<div className="glass rounded-3xl p-12 text-center text-white/40">Loading charts…</div>}>
+        <Charts daily={data.daily} weekly={data.weekly} monthly={data.monthly} />
+      </Suspense>
+    </div>
   );
 }

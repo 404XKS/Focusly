@@ -37,8 +37,12 @@ export function Analytics() {
       const mins = stats.sessions.filter((s) => s.date.startsWith(key)).reduce((a, b) => a + b.minutes, 0);
       monthly.push({ label: d.toLocaleDateString(undefined, { month: "short" }), minutes: mins });
     }
-    return { daily, weekly, monthly };
-  }, [stats.sessions]);
+      // this week (last 7 days)
+      const weekKeys = new Set(daily.slice(7).map((d) => d.date));
+      const weekSessions = stats.sessions.filter((s) => weekKeys.has(s.date));
+      const weekMinutes = weekSessions.reduce((a, b) => a + b.minutes, 0);
+      return { daily, weekly, monthly, weekSessions: weekSessions.length, weekMinutes };
+    }, [stats.sessions]);
 
   return (
     <Suspense fallback={<div className="glass rounded-3xl p-12 text-center text-white/40">Loading charts…</div>}>

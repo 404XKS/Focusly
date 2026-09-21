@@ -241,11 +241,15 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
   const [lastQuote, setLastQuote] = useState<string | null>(null);
   const [cycle, setCycle] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  const [restoredMessage, setRestoredMessage] = useState<string | null>(null);
+  const [pendingRun, setPendingRun] = useState<PendingRun | null>(null);
 
   const tickRef = useRef<number | null>(null);
   const endAtRef = useRef<number | null>(null);
   const autoStartRef = useRef<number | null>(null);
   const completingRef = useRef(false);
+  const runRef = useRef<ActiveRun | null>(null);
+  const recordedRef = useRef<string[]>([]);
 
   const duration = useMemo(() => {
     const mins = mode === "focus" ? settings.focus : mode === "short" ? settings.short : settings.long;

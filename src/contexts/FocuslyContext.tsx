@@ -54,6 +54,30 @@ type Ctx = {
   lastQuote: string | null;
   clearQuote: () => void;
   cycle: number;
+  restoredMessage: string | null;
+  clearRestored: () => void;
+  pendingRun: PendingRun | null;
+  savePendingRun: () => void;
+  discardPendingRun: () => void;
+};
+
+/** A focus/break run persisted across reloads, driven by wall-clock timestamps. */
+export type ActiveRun = {
+  id: string;
+  mode: Mode;
+  taskId: string | null;
+  startedAt: number;
+  endAt: number;
+  durationSec: number;
+  remainingSec: number;
+  status: "running" | "paused";
+};
+
+/** An interrupted focus run kept around so the user can decide what to do with it. */
+export type PendingRun = {
+  id: string;
+  minutes: number;
+  startedAt: number;
 };
 
 const FocuslyCtx = createContext<Ctx | null>(null);
@@ -153,6 +177,56 @@ function saveLS<T>(key: string, v: T) {
   try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* storage full or blocked */ }
 }
 
+function removeLS(key: string) {
+  try { localStorage.removeItem(key); } catch { /* ignore */ }
+}
+
+const RUN_KEY = "focusly:run";
+const PENDING_KEY = "focusly:pending-run";
+const RECORDED_KEY = "focusly:recorded-runs";
+const MODES: Mode[] = ["focus", "short", "long"];
+
+function newId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function sanitizeRun(raw: unknown): ActiveRun | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const startedAt = num(o.startedAt);
+  const endAt = num(o.endAt);
+  const durationSec = num(o.durationSec);
+  if (!startedAt || !endAt || !durationSec || durationSec <= 0) return null;
+  if (typeof o.id !== "string" || !o.id) return null;
+  if (!MODES.includes(o.mode as Mode)) return null;
+  return {
+    id: o.id,
+    mode: o.mode as Mode,
+    taskId: typeof o.taskId === "string" ? o.taskId : null,
+    startedAt,
+    endAt,
+    durationSec: Math.round(durationSec),
+    remainingSec: Math.max(0, Math.round(num(o.remainingSec) ?? 0)),
+    status: o.status === "paused" ? "paused" : "running",
+  };
+}
+
+function sanitizePending(raw: unknown): PendingRun | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const minutes = clampInt(o.minutes, 1, 600, 0);
+  if (minutes < 1 || typeof o.id !== "string" || !o.id) return null;
+  const startedAt = typeof o.startedAt === "number" && Number.isFinite(o.startedAt) ? o.startedAt : Date.now();
+  return { id: o.id, minutes, startedAt };
+}
+
+function sanitizeRecorded(raw: unknown): string[] {
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string").slice(-100) : [];
+}
+
 /* -------------------------------- provider -------------------------------- */
 
 export function FocuslyProvider({ children }: { children: ReactNode }) {
@@ -167,11 +241,15 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
   const [lastQuote, setLastQuote] = useState<string | null>(null);
   const [cycle, setCycle] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  const [restoredMessage, setRestoredMessage] = useState<string | null>(null);
+  const [pendingRun, setPendingRun] = useState<PendingRun | null>(null);
 
   const tickRef = useRef<number | null>(null);
   const endAtRef = useRef<number | null>(null);
   const autoStartRef = useRef<number | null>(null);
   const completingRef = useRef(false);
+  const runRef = useRef<ActiveRun | null>(null);
+  const recordedRef = useRef<string[]>([]);
 
   const duration = useMemo(() => {
     const mins = mode === "focus" ? settings.focus : mode === "short" ? settings.short : settings.long;
@@ -190,6 +268,8 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     setTasks(t);
     setActiveTaskId(t.some((x) => x.id === active) ? active : null);
     setRemaining(s.focus * 60);
+    recordedRef.current = sanitizeRecorded(readJSON(RECORDED_KEY));
+    setPendingRun(sanitizePending(readJSON(PENDING_KEY)));
     setHydrated(true);
   }, []);
 
@@ -257,8 +337,17 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     } catch { /* notifications unavailable */ }
   }, [settings.desktopNotifications]);
 
-  const recordSession = useCallback((mins: number) => {
-    const now = new Date();
+  /**
+   * Record a completed focus session. `runId` makes this idempotent, so a
+   * refresh or a re-opened tab can never write the same run twice.
+   */
+  const recordSession = useCallback((mins: number, runId?: string, at: number = Date.now()) => {
+    if (runId) {
+      if (recordedRef.current.includes(runId)) return;
+      recordedRef.current = [...recordedRef.current, runId].slice(-100);
+      saveLS(RECORDED_KEY, recordedRef.current);
+    }
+    const now = new Date(at);
     const rec: SessionRecord = {
       date: todayKey(now),
       timestamp: now.getTime(),
@@ -276,11 +365,48 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const startInternal = useCallback((dur: number) => {
-    endAtRef.current = Date.now() + Math.max(1, dur) * 1000;
-    setRemaining(Math.max(1, dur));
-    setRunning(true);
+  /** Persist the current run so wall-clock time survives reloads and closed tabs. */
+  const persistRun = useCallback((run: ActiveRun | null) => {
+    runRef.current = run;
+    if (run) saveLS(RUN_KEY, run);
+    else removeLS(RUN_KEY);
   }, []);
+
+  /**
+   * Keep an unfinished focus run instead of throwing it away, so the user
+   * can decide whether to save the time they actually worked.
+   */
+  const stashInterrupted = useCallback(() => {
+    const run = runRef.current;
+    if (!run || run.mode !== "focus") { persistRun(null); return; }
+    const elapsedSec = run.status === "paused"
+      ? run.durationSec - run.remainingSec
+      : Math.min(run.durationSec, Math.round((Date.now() - run.startedAt) / 1000));
+    const minutes = Math.floor(elapsedSec / 60);
+    persistRun(null);
+    if (minutes < 1 || recordedRef.current.includes(run.id)) return;
+    const pending: PendingRun = { id: run.id, minutes, startedAt: run.startedAt };
+    setPendingRun(pending);
+    saveLS(PENDING_KEY, pending);
+  }, [persistRun]);
+
+  const startInternal = useCallback((dur: number, runMode?: Mode) => {
+    const secs = Math.max(1, Math.round(dur));
+    const now = Date.now();
+    endAtRef.current = now + secs * 1000;
+    persistRun({
+      id: newId(),
+      mode: runMode ?? mode,
+      taskId: activeTaskId,
+      startedAt: now,
+      endAt: now + secs * 1000,
+      durationSec: secs,
+      remainingSec: secs,
+      status: "running",
+    });
+    setRemaining(secs);
+    setRunning(true);
+  }, [mode, activeTaskId, persistRun]);
 
   const scheduleAutoStart = useCallback((dur: number) => {
     if (autoStartRef.current !== null) window.clearTimeout(autoStartRef.current);

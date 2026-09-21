@@ -54,6 +54,15 @@ export function Achievements() {
                 <div>
                   <div className="text-sm font-medium">{a.title}</div>
                   <div className="mt-0.5 text-xs text-white/50">{a.description}</div>
+                  {!unlocked && a.progress && (() => {
+                    const p = a.progress(stats);
+                    const current = Math.min(p.current, p.target);
+                    return (
+                      <div className="mt-1 text-[11px] text-white/40">
+                        Progress: {current} / {p.target} {p.unit}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </motion.div>

@@ -337,8 +337,17 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     } catch { /* notifications unavailable */ }
   }, [settings.desktopNotifications]);
 
-  const recordSession = useCallback((mins: number) => {
-    const now = new Date();
+  /**
+   * Record a completed focus session. `runId` makes this idempotent, so a
+   * refresh or a re-opened tab can never write the same run twice.
+   */
+  const recordSession = useCallback((mins: number, runId?: string, at: number = Date.now()) => {
+    if (runId) {
+      if (recordedRef.current.includes(runId)) return;
+      recordedRef.current = [...recordedRef.current, runId].slice(-100);
+      saveLS(RECORDED_KEY, recordedRef.current);
+    }
+    const now = new Date(at);
     const rec: SessionRecord = {
       date: todayKey(now),
       timestamp: now.getTime(),
@@ -356,11 +365,48 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const startInternal = useCallback((dur: number) => {
-    endAtRef.current = Date.now() + Math.max(1, dur) * 1000;
-    setRemaining(Math.max(1, dur));
-    setRunning(true);
+  /** Persist the current run so wall-clock time survives reloads and closed tabs. */
+  const persistRun = useCallback((run: ActiveRun | null) => {
+    runRef.current = run;
+    if (run) saveLS(RUN_KEY, run);
+    else removeLS(RUN_KEY);
   }, []);
+
+  /**
+   * Keep an unfinished focus run instead of throwing it away, so the user
+   * can decide whether to save the time they actually worked.
+   */
+  const stashInterrupted = useCallback(() => {
+    const run = runRef.current;
+    if (!run || run.mode !== "focus") { persistRun(null); return; }
+    const elapsedSec = run.status === "paused"
+      ? run.durationSec - run.remainingSec
+      : Math.min(run.durationSec, Math.round((Date.now() - run.startedAt) / 1000));
+    const minutes = Math.floor(elapsedSec / 60);
+    persistRun(null);
+    if (minutes < 1 || recordedRef.current.includes(run.id)) return;
+    const pending: PendingRun = { id: run.id, minutes, startedAt: run.startedAt };
+    setPendingRun(pending);
+    saveLS(PENDING_KEY, pending);
+  }, [persistRun]);
+
+  const startInternal = useCallback((dur: number, runMode?: Mode) => {
+    const secs = Math.max(1, Math.round(dur));
+    const now = Date.now();
+    endAtRef.current = now + secs * 1000;
+    persistRun({
+      id: newId(),
+      mode: runMode ?? mode,
+      taskId: activeTaskId,
+      startedAt: now,
+      endAt: now + secs * 1000,
+      durationSec: secs,
+      remainingSec: secs,
+      status: "running",
+    });
+    setRemaining(secs);
+    setRunning(true);
+  }, [mode, activeTaskId, persistRun]);
 
   const scheduleAutoStart = useCallback((dur: number) => {
     if (autoStartRef.current !== null) window.clearTimeout(autoStartRef.current);

@@ -54,6 +54,30 @@ type Ctx = {
   lastQuote: string | null;
   clearQuote: () => void;
   cycle: number;
+  restoredMessage: string | null;
+  clearRestored: () => void;
+  pendingRun: PendingRun | null;
+  savePendingRun: () => void;
+  discardPendingRun: () => void;
+};
+
+/** A focus/break run persisted across reloads, driven by wall-clock timestamps. */
+export type ActiveRun = {
+  id: string;
+  mode: Mode;
+  taskId: string | null;
+  startedAt: number;
+  endAt: number;
+  durationSec: number;
+  remainingSec: number;
+  status: "running" | "paused";
+};
+
+/** An interrupted focus run kept around so the user can decide what to do with it. */
+export type PendingRun = {
+  id: string;
+  minutes: number;
+  startedAt: number;
 };
 
 const FocuslyCtx = createContext<Ctx | null>(null);

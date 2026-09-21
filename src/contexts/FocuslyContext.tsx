@@ -177,6 +177,56 @@ function saveLS<T>(key: string, v: T) {
   try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* storage full or blocked */ }
 }
 
+function removeLS(key: string) {
+  try { localStorage.removeItem(key); } catch { /* ignore */ }
+}
+
+const RUN_KEY = "focusly:run";
+const PENDING_KEY = "focusly:pending-run";
+const RECORDED_KEY = "focusly:recorded-runs";
+const MODES: Mode[] = ["focus", "short", "long"];
+
+function newId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function sanitizeRun(raw: unknown): ActiveRun | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const startedAt = num(o.startedAt);
+  const endAt = num(o.endAt);
+  const durationSec = num(o.durationSec);
+  if (!startedAt || !endAt || !durationSec || durationSec <= 0) return null;
+  if (typeof o.id !== "string" || !o.id) return null;
+  if (!MODES.includes(o.mode as Mode)) return null;
+  return {
+    id: o.id,
+    mode: o.mode as Mode,
+    taskId: typeof o.taskId === "string" ? o.taskId : null,
+    startedAt,
+    endAt,
+    durationSec: Math.round(durationSec),
+    remainingSec: Math.max(0, Math.round(num(o.remainingSec) ?? 0)),
+    status: o.status === "paused" ? "paused" : "running",
+  };
+}
+
+function sanitizePending(raw: unknown): PendingRun | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const minutes = clampInt(o.minutes, 1, 600, 0);
+  if (minutes < 1 || typeof o.id !== "string" || !o.id) return null;
+  const startedAt = typeof o.startedAt === "number" && Number.isFinite(o.startedAt) ? o.startedAt : Date.now();
+  return { id: o.id, minutes, startedAt };
+}
+
+function sanitizeRecorded(raw: unknown): string[] {
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string").slice(-100) : [];
+}
+
 /* -------------------------------- provider -------------------------------- */
 
 export function FocuslyProvider({ children }: { children: ReactNode }) {

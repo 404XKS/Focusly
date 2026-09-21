@@ -159,7 +159,7 @@ function TodayFocus() {
   const rows = [
     { icon: Clock, label: "Focus minutes", value: `${todayMinutes}m` },
     { icon: CheckCircle2, label: "Sessions completed", value: String(todaySessions.length) },
-    { icon: Target, label: "Active task", value: activeTask ? activeTask.title : "None selected", taskId: activeTask?.id },
+    { icon: Target, label: "Active task", value: activeTask ? `${activeTask.title} · ${activeTask.completed}/${activeTask.estimated}` : "None selected", taskId: activeTask?.id },
   ];
 
   return (
@@ -175,9 +175,6 @@ function TodayFocus() {
                   <r.icon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{r.label}</span>
                 </div>
                 <div className="flex items-center gap-2 min-w-0">
-                  {task && (
-                    <span className="shrink-0 text-xs text-white/50">{task.completed}/{task.estimated}</span>
-                  )}
                   <div className="text-sm text-white/90 truncate text-right">{r.value}</div>
                 </div>
               </div>

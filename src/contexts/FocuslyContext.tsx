@@ -268,6 +268,8 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     setTasks(t);
     setActiveTaskId(t.some((x) => x.id === active) ? active : null);
     setRemaining(s.focus * 60);
+    recordedRef.current = sanitizeRecorded(readJSON(RECORDED_KEY));
+    setPendingRun(sanitizePending(readJSON(PENDING_KEY)));
     setHydrated(true);
   }, []);
 

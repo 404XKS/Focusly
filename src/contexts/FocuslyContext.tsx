@@ -468,7 +468,7 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     } finally {
       completingRef.current = false;
     }
-  }, [mode, cycle, settings, activeTaskId, activeTask, clearTimer, recordSession, playBeep, notify, scheduleAutoStart]);
+  }, [mode, cycle, settings, activeTaskId, activeTask, clearTimer, recordSession, playBeep, notify, scheduleAutoStart, persistRun]);
 
   // Always call the freshest advance() from the interval, without restarting it.
   const advanceRef = useRef(advance);

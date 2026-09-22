@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, BarChart3, Settings as SettingsIcon, Trophy, Sparkles, ListTodo, Timer as TimerIcon, Target, Clock, CheckCircle2 } from "lucide-react";
 import { todayKey } from "@/utils/helpers";

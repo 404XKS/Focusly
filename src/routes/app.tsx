@@ -57,6 +57,7 @@ function AppPage() {
       </div>
 
       <QuoteToast />
+      <SessionRecovery />
 
       <AnimatePresence mode="wait">
         {focusMode ? (

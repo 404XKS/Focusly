@@ -431,9 +431,12 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
       endAtRef.current = null;
       setRunning(false);
 
+      const finishedRun = runRef.current;
+      persistRun(null);
+
       if (mode === "focus") {
         if (completed) {
-          recordSession(settings.focus);
+          recordSession(settings.focus, finishedRun?.id);
           if (activeTaskId) {
             setTasks((prev) => prev.map((t) => {
               if (t.id !== activeTaskId || t.done) return t;

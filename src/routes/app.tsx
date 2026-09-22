@@ -195,3 +195,45 @@ function TodayFocus() {
 function ShortcutsModalWrap() {
   return <ShortcutsModal />;
 }
+
+/** Restore notice + save/discard choice for a focus session that was interrupted. */
+function SessionRecovery() {
+  const { restoredMessage, clearRestored, pendingRun, savePendingRun, discardPendingRun } = useFocusly();
+
+  useEffect(() => {
+    if (!restoredMessage) return;
+    const id = window.setTimeout(clearRestored, 6000);
+    return () => window.clearTimeout(id);
+  }, [restoredMessage, clearRestored]);
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4">
+      <AnimatePresence>
+        {restoredMessage && (
+          <motion.div key="restored"
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            className="glass pointer-events-auto rounded-full px-4 py-2 text-xs text-white/80">
+            {restoredMessage}
+          </motion.div>
+        )}
+        {pendingRun && (
+          <motion.div key="pending"
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            className="glass pointer-events-auto flex flex-wrap items-center justify-center gap-3 rounded-2xl px-4 py-3 text-xs text-white/80">
+            <span>Unfinished focus session — {pendingRun.minutes} min worked. Save it?</span>
+            <div className="flex items-center gap-2">
+              <button onClick={savePendingRun}
+                className="rounded-full px-3 py-1.5 font-medium text-white"
+                style={{ background: "linear-gradient(135deg, rgb(139,92,246), rgb(59,130,246))" }}>
+                Save
+              </button>
+              <button onClick={discardPendingRun} className="rounded-full px-3 py-1.5 text-white/60 hover:text-white">
+                Discard
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

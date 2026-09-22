@@ -552,6 +552,75 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     });
   }, [settings.focus, startInternal]);
 
+  /**
+   * Restore a run saved before the tab was closed or refreshed.
+   * Wall-clock timestamps mean elapsed time is recalculated, not lost, and the
+   * run id keeps recording idempotent across repeated reloads.
+   */
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!hydrated || restoredRef.current) return;
+    restoredRef.current = true;
+    const run = sanitizeRun(readJSON(RUN_KEY));
+    if (!run) return;
+
+    setModeState(run.mode);
+    if (run.taskId) setActiveTaskId((cur) => cur ?? run.taskId);
+
+    if (run.status === "paused") {
+      persistRun(run);
+      setRemaining(run.remainingSec);
+      setRestoredMessage("Restored your previous focus session");
+      return;
+    }
+
+    const rem = Math.max(0, Math.round((run.endAt - Date.now()) / 1000));
+    if (rem > 0) {
+      runRef.current = run;
+      endAtRef.current = run.endAt;
+      setRemaining(rem);
+      setRunning(true);
+      setRestoredMessage("Restored your previous focus session");
+      return;
+    }
+
+    // The run finished while the site was closed — credit it exactly once.
+    persistRun(null);
+    if (run.mode === "focus") {
+      recordSession(Math.max(1, Math.round(run.durationSec / 60)), run.id, run.endAt);
+      if (run.taskId) {
+        setTasks((prev) => prev.map((t) => {
+          if (t.id !== run.taskId || t.done) return t;
+          const completedCount = Math.min(t.estimated, t.completed + 1);
+          return { ...t, completed: completedCount, done: completedCount >= t.estimated };
+        }));
+      }
+      setModeState("short");
+      setRemaining(clampInt(settings.short, 1, 90, 5) * 60);
+      setRestoredMessage("Your focus session completed while you were away");
+    } else {
+      setModeState("focus");
+      setRemaining(clampInt(settings.focus, 1, 180, 25) * 60);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  // Keep the saved run fresh when the page is hidden or closed mid-session.
+  useEffect(() => {
+    const save = () => {
+      const run = runRef.current;
+      if (!run || run.status !== "running") return;
+      persistRun({ ...run, remainingSec: Math.max(0, Math.round((run.endAt - Date.now()) / 1000)) });
+    };
+    window.addEventListener("pagehide", save);
+    window.addEventListener("beforeunload", save);
+    return () => {
+      window.removeEventListener("pagehide", save);
+      window.removeEventListener("beforeunload", save);
+    };
+  }, [persistRun]);
+
+
   // Single ticker, deadline-based so background throttling cannot cause drift.
   useEffect(() => {
     if (!running) { clearTimer(); return; }

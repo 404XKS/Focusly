@@ -718,6 +718,8 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     focusMode, setFocusMode,
     lastQuote, clearQuote: () => setLastQuote(null),
     cycle,
+    restoredMessage, clearRestored,
+    pendingRun, savePendingRun, discardPendingRun,
   };
 
   return <FocuslyCtx.Provider value={value}>{children}</FocuslyCtx.Provider>;

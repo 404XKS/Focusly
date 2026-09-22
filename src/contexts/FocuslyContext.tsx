@@ -483,31 +483,62 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
   }, [running, remaining, duration, settings.desktopNotifications, startInternal]);
 
   const pause = useCallback(() => {
-    if (endAtRef.current !== null) {
-      setRemaining(Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000)));
-    }
+    const rem = endAtRef.current !== null
+      ? Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000))
+      : null;
+    if (rem !== null) setRemaining(rem);
     endAtRef.current = null;
     setRunning(false);
-  }, []);
+    const run = runRef.current;
+    if (run) persistRun({ ...run, status: "paused", remainingSec: rem ?? run.remainingSec });
+  }, [persistRun]);
 
   const reset = useCallback(() => {
     if (autoStartRef.current !== null) { window.clearTimeout(autoStartRef.current); autoStartRef.current = null; }
+    if (endAtRef.current !== null && runRef.current) {
+      persistRun({ ...runRef.current, status: "paused", remainingSec: Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000)) });
+    }
+    stashInterrupted();
     endAtRef.current = null;
     setRunning(false);
     setRemaining(duration);
-  }, [duration]);
+  }, [duration, persistRun, stashInterrupted]);
 
   const skip = useCallback(() => {
     if (autoStartRef.current !== null) { window.clearTimeout(autoStartRef.current); autoStartRef.current = null; }
+    if (endAtRef.current !== null && runRef.current) {
+      persistRun({ ...runRef.current, status: "paused", remainingSec: Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000)) });
+    }
+    stashInterrupted();
     advance(false);
-  }, [advance]);
+  }, [advance, persistRun, stashInterrupted]);
 
   const setMode = useCallback((m: Mode) => {
     if (autoStartRef.current !== null) { window.clearTimeout(autoStartRef.current); autoStartRef.current = null; }
+    if (endAtRef.current !== null && runRef.current) {
+      persistRun({ ...runRef.current, status: "paused", remainingSec: Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000)) });
+    }
+    stashInterrupted();
     endAtRef.current = null;
     setRunning(false);
     setModeState(m);
+  }, [persistRun, stashInterrupted]);
+
+  /** Keep the elapsed focus time the user actually worked. */
+  const savePendingRun = useCallback(() => {
+    setPendingRun((p) => {
+      if (p) recordSession(p.minutes, p.id, Date.now());
+      removeLS(PENDING_KEY);
+      return null;
+    });
+  }, [recordSession]);
+
+  const discardPendingRun = useCallback(() => {
+    setPendingRun(null);
+    removeLS(PENDING_KEY);
   }, []);
+
+  const clearRestored = useCallback(() => setRestoredMessage(null), []);
 
   /** Select a task, switch to focus mode and start the timer in one action. */
   const startTaskFocus = useCallback((id: string) => {

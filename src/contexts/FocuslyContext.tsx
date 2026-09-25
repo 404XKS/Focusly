@@ -60,6 +60,8 @@ type Ctx = {
   pendingRun: PendingRun | null;
   savePendingRun: () => void;
   discardPendingRun: () => void;
+  cloudUser: { id: string; email: string | null } | null;
+  signOut: () => Promise<void>;
 };
 
 /** A focus/break run persisted across reloads, driven by wall-clock timestamps. */

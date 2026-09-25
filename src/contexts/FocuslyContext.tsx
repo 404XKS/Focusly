@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Mode, Settings, Stats, Task, SessionRecord } from "@/utils/types";
 import { todayKey, clampInt, isDateKey, computeStreaks } from "@/utils/helpers";
 import { randomQuote } from "@/utils/quotes";
+import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_SETTINGS: Settings = {
   focus: 25,
@@ -59,6 +60,8 @@ type Ctx = {
   pendingRun: PendingRun | null;
   savePendingRun: () => void;
   discardPendingRun: () => void;
+  cloudUser: { id: string; email: string | null } | null;
+  signOut: () => Promise<void>;
 };
 
 /** A focus/break run persisted across reloads, driven by wall-clock timestamps. */
@@ -283,6 +286,63 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
       else localStorage.removeItem("focusly:active");
     } catch { /* ignore */ }
   }, [activeTaskId, hydrated]);
+
+  // ---- Cloud backup: keeps sessions/tasks/settings safe when browser data is cleared ----
+  const [cloudUser, setCloudUser] = useState<{ id: string; email: string | null } | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user;
+      setCloudUser(u ? { id: u.id, email: u.email ?? null } : null);
+      if (!u) setCloudReady(false);
+    });
+    supabase.auth.getSession().then(({ data: d }) => {
+      const u = d.session?.user;
+      setCloudUser(u ? { id: u.id, email: u.email ?? null } : null);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+  // Pull + merge once per sign-in
+  useEffect(() => {
+    if (!hydrated || !cloudUser) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("user_data").select("sessions,tasks,settings").eq("user_id", cloudUser.id).maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        const remoteSessions = sanitizeSessions(data.sessions);
+        setStats((p) => {
+          const seen = new Set(p.sessions.map((s) => s.timestamp));
+          const merged = [...p.sessions, ...remoteSessions.filter((s) => !seen.has(s.timestamp))]
+            .sort((a, b) => a.timestamp - b.timestamp);
+          return deriveStats(merged, p.unlocked, p);
+        });
+        const remoteTasks = sanitizeTasks(data.tasks);
+        setTasks((p) => {
+          const ids = new Set(p.map((t) => t.id));
+          return [...p, ...remoteTasks.filter((t) => !ids.has(t.id))];
+        });
+        if (data.settings) setSettings(sanitizeSettings(data.settings));
+      }
+      setCloudReady(true);
+    })().catch(() => setCloudReady(true));
+    return () => { cancelled = true; };
+  }, [hydrated, cloudUser]);
+  // Push (debounced) whenever data changes
+  useEffect(() => {
+    if (!cloudReady || !cloudUser) return;
+    const id = window.setTimeout(() => {
+      supabase.from("user_data").upsert({
+        user_id: cloudUser.id,
+        sessions: stats.sessions as unknown as never,
+        tasks: tasks as unknown as never,
+        settings: settings as unknown as never,
+        updated_at: new Date().toISOString(),
+      }).then(() => {}, () => {});
+    }, 1500);
+    return () => window.clearTimeout(id);
+  }, [cloudReady, cloudUser, stats.sessions, tasks, settings]);
+  const signOut = useCallback(async () => { await supabase.auth.signOut(); }, []);
 
   // Keep streaks correct across midnight / days with no sessions.
   useEffect(() => {
@@ -720,6 +780,7 @@ export function FocuslyProvider({ children }: { children: ReactNode }) {
     cycle,
     restoredMessage, clearRestored,
     pendingRun, savePendingRun, discardPendingRun,
+    cloudUser, signOut,
   };
 
   return <FocuslyCtx.Provider value={value}>{children}</FocuslyCtx.Provider>;

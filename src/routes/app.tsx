@@ -193,7 +193,19 @@ function TodayFocus() {
 }
 
 function ShortcutsModalWrap() {
-  return <ShortcutsModal />;
+  const { cloudUser, signOut } = useFocusly();
+  return (
+    <div className="flex items-center gap-2">
+      {cloudUser ? (
+        <button onClick={signOut} title={cloudUser.email ?? ""} className="glass rounded-full px-3 py-2 text-xs text-white/70 hover:text-white">
+          Synced · Sign out
+        </button>
+      ) : (
+        <Link to="/auth" className="glass rounded-full px-3 py-2 text-xs text-white/70 hover:text-white">Sign in to save</Link>
+      )}
+      <ShortcutsModal />
+    </div>
+  );
 }
 
 /** Restore notice + save/discard choice for a focus session that was interrupted. */

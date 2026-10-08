@@ -1,0 +1,1 @@
+Store user-facing identity fields in the owner-scoped `public.profiles` table, keyed to `auth.users`, and create rows through an idempotent auth-user trigger so account metadata stays separate from app data.

@@ -44,7 +44,7 @@ function AuthPage() {
   const google = async () => {
     const r = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/app` },
+      options: { redirectTo: `${window.location.origin}/auth` },
     });
     if (r.error) setMsg(r.error.message ?? "Google sign-in failed");
   };
